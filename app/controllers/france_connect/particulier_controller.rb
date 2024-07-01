@@ -2,6 +2,7 @@ class FranceConnect::ParticulierController < ApplicationController
   before_action :redirect_to_login_if_fc_aborted, only: [:callback]
   before_action :securely_retrieve_fci, only: [:merge, :merge_with_existing_account, :merge_with_new_account, :resend_and_renew_merge_confirmation]
   before_action :securely_retrieve_fci_from_email_merge_token, only: [:mail_merge_with_existing_account]
+  before_action :set_user, only: [:new_resend_confirmation, :resend_confirmation]
 
   def login
     if FranceConnectService.enabled?
@@ -11,6 +12,10 @@ class FranceConnect::ParticulierController < ApplicationController
     end
   end
 
+  def choose_email
+    @france_connect_email = params[:france_connect_email]
+  end
+
   def callback
     fci = FranceConnectService.find_or_retrieve_france_connect_information(params[:code])
 
@@ -18,8 +23,9 @@ class FranceConnect::ParticulierController < ApplicationController
       preexisting_unlinked_user = User.find_by(email: sanitize(fci.email_france_connect))
 
       if preexisting_unlinked_user.nil?
-        fci.associate_user!(fci.email_france_connect)
-        connect_france_connect_particulier(fci.user)
+        session[:france_connect_information] = fci.to_json
+        render :choose_email, locals: { france_connect_email: fci.email_france_connect }
+
       elsif !preexisting_unlinked_user.can_france_connect?
         fci.destroy
         redirect_to new_user_session_path, alert: t('errors.messages.france_connect.forbidden_html', reset_link: new_user_password_path)
@@ -33,7 +39,7 @@ class FranceConnect::ParticulierController < ApplicationController
       if user.can_france_connect?
         fci.update(updated_at: Time.zone.now)
         connect_france_connect_particulier(user)
-      else # same behaviour as redirect nicely with message when instructeur/administrateur
+      else
         fci.destroy
         redirect_to new_user_session_path, alert: t('errors.messages.france_connect.forbidden_html', reset_link: new_user_password_path)
       end
@@ -42,6 +48,30 @@ class FranceConnect::ParticulierController < ApplicationController
   rescue Rack::OAuth2::Client::Error => e
     Rails.logger.error e.message
     redirect_france_connect_error_connection
+  end
+
+  def associate_user
+    fci_json = session[:france_connect_information]
+
+    if !fci_json
+      redirect_to new_user_session_path, alert: t('france_connect.particulier.associate_user.errors.unable_to_retrieve_information')
+      return
+    end
+
+    fci = FranceConnectInformation.new(JSON.parse(fci_json))
+
+    use_france_connect_email = ActiveModel::Type::Boolean.new.cast(params[:use_france_connect_email])
+    email = use_france_connect_email ? fci.email_france_connect : params[:alternative_email]
+
+    if email.present?
+      if fci.associate_user!(email)
+        render :confirmation_sent, locals: { email: email, fci: fci }
+      else
+        redirect_to new_user_session_path, alert: t('france_connect.particulier.associate_user.errors.unable_to_send_confirmation')
+      end
+    else
+      redirect_to new_user_session_path, alert: 'Veuillez fournir un email.'
+    end
   end
 
   def merge
@@ -111,7 +141,44 @@ class FranceConnect::ParticulierController < ApplicationController
                 notice: t('france_connect.particulier.flash.confirmation_mail_sent')
   end
 
+  def confirm_email
+    user = User.find_by(confirmation_token: params[:token])
+    if user && user.confirmation_sent_at > 2.days.ago
+      user.update(email_verified_at: Time.zone.now, confirmation_token: nil)
+      user.after_confirmation
+      redirect_to stored_location_for(user) || root_path(user), notice: 'Votre email est bien vérifié'
+    else
+      redirect_to france_connect_new_resend_confirmation_path, alert: "Lien de confirmation expiré. Un nouveau lien de confirmation a été envoyé."
+    end
+  end
+
+  def new_resend_confirmation
+    if @user.nil? || @user.email_verified_at
+      redirect_to root_path, alert: 'Adresse email non trouvée ou déjà confirmée.'
+    end
+  end
+
+  def resend_confirmation
+    user = User.find_by(email: params[:email])
+    fci = FranceConnectInformation.find_by(user: user)
+    if user && !user.email_verified_at
+      fci.send_custom_confirmation_instructions(user)
+      redirect_to root_path(user), notice: "Votre lien a expiré. Demandez un nouveau lien en cliquant sur le bouton ci-dessous"
+    else
+      redirect_to root_path(user), alert: "Adresse email non trouvée ou déjà confirmée."
+    end
+  end
+
+  def connect_france_connect_particulier_redirect
+    user = User.find(params[:user_id])
+    connect_france_connect_particulier(user)
+  end
+
   private
+
+  def set_user
+    @user = current_user || User.find_by(email: params[:email])
+  end
 
   def securely_retrieve_fci_from_email_merge_token
     @fci = FranceConnectInformation.find_by(email_merge_token: email_merge_token_params)
