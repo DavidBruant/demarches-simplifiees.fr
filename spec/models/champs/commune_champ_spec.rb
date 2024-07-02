@@ -2,7 +2,13 @@ describe Champs::CommuneChamp do
   let(:code_insee) { '63102' }
   let(:code_postal) { '63290' }
   let(:code_departement) { '63' }
-  let(:champ) { create(:champ_communes, code_postal:, external_id: code_insee) }
+  let(:champ) do
+    described_class.new(type_de_champ: build(:type_de_champ_communes)).tap do |champ|
+      champ.code_postal = code_postal
+      champ.external_id = code_insee
+      champ.run_callbacks(:save)
+    end
+  end
 
   describe 'value' do
     it 'find commune' do
