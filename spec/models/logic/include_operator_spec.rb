@@ -1,7 +1,8 @@
 describe Logic::IncludeOperator do
   include Logic
 
-  let(:champ) { create(:champ_multiple_drop_down_list, value: '["val1", "val2"]') }
+  let(:tdc) { create(:type_de_champ_multiple_drop_down_list) }
+  let(:champ) { Champs::MultipleDropDownListChamp.new(value: '["val1", "val2"]', stable_id: tdc.stable_id, type_de_champ: tdc) }
 
   describe '#compute' do
     it { expect(ds_include(champ_value(champ.stable_id), constant('val1')).compute([champ])).to be(true) }
