@@ -17,8 +17,8 @@ class ExportTemplate < ApplicationRecord
   end
 
   def set_default_values
-    self.dossier_folder = { "template" => path_with_dossier_id_suffix("dossier"), "enabled" => true }
-    self.export_pdf = { "template" => path_with_dossier_id_suffix("export"), "enabled" => true }
+    self.dossier_folder = { "template" => template_with_dossier_id_suffix("dossier"), "enabled" => true }
+    self.export_pdf = { "template" => template_with_dossier_id_suffix("export"), "enabled" => true }
 
     self.pjs = procedure.exportables_pieces_jointes.map do |pj|
       nice_libelle = transliterate(pj.libelle).downcase
@@ -27,7 +27,7 @@ class ExportTemplate < ApplicationRecord
 
       {
         "stable_id" => pj.stable_id.to_s,
-        "template" => path_with_dossier_id_suffix(nice_libelle),
+        "template" => template_with_dossier_id_suffix(nice_libelle),
         "enabled" => false
       }
     end
@@ -72,7 +72,7 @@ class ExportTemplate < ApplicationRecord
 
   private
 
-  def path_with_dossier_id_suffix(prefix)
+  def template_with_dossier_id_suffix(prefix)
     {
       "type" => "doc",
       "content" => [
