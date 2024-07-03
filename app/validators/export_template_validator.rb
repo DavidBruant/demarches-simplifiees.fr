@@ -17,6 +17,8 @@ class ExportTemplateValidator < ActiveModel::Validator
   end
 
   def validate_export_pdf(export_template)
+    return if !export_template.export_pdf['enabled']
+
     template = export_template.export_pdf['template']
     texts, mentions = leaves(template).then { |leaves| [texts(leaves), mention_ids(leaves)] }
 
@@ -26,10 +28,11 @@ class ExportTemplateValidator < ActiveModel::Validator
   end
 
   def validate_pjs(export_template)
-    pjs = export_template.groupe_instructeur.procedure.exportables_pieces_jointes
-    libelle_by_stable_ids = pjs.pluck(:stable_id, :libelle).to_h { |sid, l| [sid.to_s, l] }
+    libelle_by_stable_ids = pj_libelle_by_stable_id(export_template)
 
     export_template.pjs.each do |pj|
+      next if !pj['enabled']
+
       texts, mentions = leaves(pj['template']).then { |leaves| [texts(leaves), mention_ids(leaves)] }
 
       if texts.empty? && mentions.empty?
@@ -37,6 +40,11 @@ class ExportTemplateValidator < ActiveModel::Validator
         export_template.errors.add(libelle, I18n.t(:blank, scope: 'errors.messages'))
       end
     end
+  end
+
+  def pj_libelle_by_stable_id(export_template)
+    pjs = export_template.groupe_instructeur.procedure.exportables_pieces_jointes
+    pjs.pluck(:stable_id, :libelle).to_h { |sid, l| [sid.to_s, l] }
   end
 
   def leaves(template)
