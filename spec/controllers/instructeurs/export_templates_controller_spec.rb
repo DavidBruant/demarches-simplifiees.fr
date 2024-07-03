@@ -1,18 +1,34 @@
 describe Instructeurs::ExportTemplatesController, type: :controller do
   before { sign_in(instructeur.user) }
-  let(:defaut_export_pdf) {
+
+  def pj_export_conf(stable_id:, text:, enabled:)
+    export_conf(text: text, enabled: enabled).merge("stable_id" => stable_id.to_s)
+  end
+
+  def export_conf(text:, enabled:)
     {
-      "enabled" => true,
+      "enabled" => enabled,
       "template" => {
         "type" => "doc",
-        "content" => [
-          { "type" => "paragraph", "content" => [{ "text" => "mon_export_", "type" => "text" }, { "type" => "mention", "attrs" => { "id" => "dossier_number", "label" => "numéro du dossier" } }] }
-        ]
+        "content" => content(text:)
       }.to_json
     }
-  }
+  end
 
-  let(:export_pdf) { defaut_export_pdf }
+  def content(text:)
+    [
+      {
+        "type" => "paragraph",
+        "content" => [
+          { "text" => text, "type" => "text" },
+          { "type" => "mention", "attrs" => { "id" => "dossier_number", "label" => "numéro du dossier" } }
+        ]
+      }
+    ]
+  end
+
+  let(:default_export_pdf) { export_conf(text: "mon_export_", enabled: true) }
+  let(:export_pdf) { default_export_pdf }
 
   let(:export_template_params) do
     {
@@ -20,40 +36,11 @@ describe Instructeurs::ExportTemplatesController, type: :controller do
       kind: "zip",
       groupe_instructeur_id: groupe_instructeur.id,
       export_pdf:,
-      dossier_folder: {
-        "enabled" => true,
-        "template" => {
-          "type" => "doc",
-          "content" => [
-            { "type" => "paragraph", "content" => [{ "text" => "DOSSIER_", "type" => "text" }, { "type" => "mention", "attrs" => { "id" => "dossier_number", "label" => "numéro du dossier" } }, { "text" => " ", "type" => "text" }] }
-          ]
-        }.to_json
-      },
+      dossier_folder: export_conf(text: "DOSSIER_", enabled: true),
       pjs: [
-        {
-          "enabled" => true,
-          "stable_id" => "3",
-          "template" => {
-            "type" => "doc",
-            "content" => [{ "type" => "paragraph", "content" => [{ "type" => "text", "text" => "avis-commission-" }, { "type" => "mention", "attrs" => { "id" => "dossier_number", "label" => "numéro du dossier" } }] }]
-          }.to_json
-        },
-        {
-          "enabled" => true,
-          "stable_id" => "5",
-          "template" => {
-            "type" => "doc",
-            "content" => [{ "type" => "paragraph", "content" => [{ "type" => "text", "text" => "avis-commission-" }, { "type" => "mention", "attrs" => { "id" => "dossier_number", "label" => "numéro du dossier" } }] }]
-          }.to_json
-        },
-        {
-          "enabled" => true,
-          "stable_id" => 10,
-          "template" => {
-            "type" => "doc",
-            "content" => [{ "type" => "paragraph", "content" => [{ "type" => "text", "text" => "avis-commission-" }, { "type" => "mention", "attrs" => { "id" => "dossier_number", "label" => "numéro du dossier" } }] }]
-          }.to_json
-        }
+        pj_export_conf(stable_id: 3, text: "avis-commission-", enabled: true),
+        pj_export_conf(stable_id: 5, text: "avis-commission-", enabled: true),
+        pj_export_conf(stable_id: 10, text: "avis-commission-", enabled: true)
       ]
     }
   end
@@ -72,7 +59,7 @@ describe Instructeurs::ExportTemplatesController, type: :controller do
   let(:groupe_instructeur) { procedure.defaut_groupe_instructeur }
 
   describe '#new' do
-    let(:subject) { get :new, params: { procedure_id: procedure.id } }
+    subject { get :new, params: { procedure_id: procedure.id } }
 
     it do
       subject
@@ -81,7 +68,7 @@ describe Instructeurs::ExportTemplatesController, type: :controller do
   end
 
   describe '#create' do
-    let(:subject) { post :create, params: { procedure_id: procedure.id, export_template: export_template_params } }
+    subject { post :create, params: { procedure_id: procedure.id, export_template: export_template_params } }
 
     context 'with valid params' do
       it 'redirect to some page' do
@@ -93,9 +80,7 @@ describe Instructeurs::ExportTemplatesController, type: :controller do
 
     context 'with invalid params' do
       let(:export_pdf) do
-        h = defaut_export_pdf.clone
-        h["template"]["content"] = "invalid"
-        h
+        default_export_pdf.merge("template" => { "content" => [{ "content" => "invalid" }] }.to_json)
       end
 
       it 'display error notification' do
@@ -106,7 +91,8 @@ describe Instructeurs::ExportTemplatesController, type: :controller do
 
     context 'with procedure not accessible by current instructeur' do
       let(:another_procedure) { create(:procedure) }
-      let(:subject) { post :create, params: { procedure_id: another_procedure.id, export_template: export_template_params } }
+      subject { post :create, params: { procedure_id: another_procedure.id, export_template: export_template_params } }
+
       it 'raise exception' do
         expect { subject }.to raise_error(ActiveRecord::RecordNotFound)
       end
@@ -115,7 +101,7 @@ describe Instructeurs::ExportTemplatesController, type: :controller do
 
   describe '#edit' do
     let(:export_template) { create(:export_template, groupe_instructeur:) }
-    let(:subject) { get :edit, params: { procedure_id: procedure.id, id: export_template.id } }
+    subject { get :edit, params: { procedure_id: procedure.id, id: export_template.id } }
 
     it 'render edit' do
       subject
@@ -135,7 +121,7 @@ describe Instructeurs::ExportTemplatesController, type: :controller do
   describe '#update' do
     let(:export_template) { create(:export_template, groupe_instructeur:) }
     let(:export_pdf) do
-      h = defaut_export_pdf.clone
+      h = default_export_pdf.clone
 
       h["template"] = {
         "type" => "doc",
@@ -147,7 +133,7 @@ describe Instructeurs::ExportTemplatesController, type: :controller do
       h
     end
 
-    let(:subject) { put :update, params: { procedure_id: procedure.id, id: export_template.id, export_template: export_template_params } }
+    subject { put :update, params: { procedure_id: procedure.id, id: export_template.id, export_template: export_template_params } }
 
     context 'with valid params' do
       it 'redirect to some page' do
@@ -159,9 +145,7 @@ describe Instructeurs::ExportTemplatesController, type: :controller do
 
     context 'with invalid params' do
       let(:export_pdf) do
-        h = defaut_export_pdf.clone
-        h["template"]["content"] = "invalid"
-        h
+        default_export_pdf.merge("template" => { "content" => [{ "content" => "invalid" }] }.to_json)
       end
 
       it 'display error notification' do
@@ -173,7 +157,7 @@ describe Instructeurs::ExportTemplatesController, type: :controller do
 
   describe '#destroy' do
     let(:export_template) { create(:export_template, groupe_instructeur:) }
-    let(:subject) { delete :destroy, params: { procedure_id: procedure.id, id: export_template.id } }
+    subject { delete :destroy, params: { procedure_id: procedure.id, id: export_template.id } }
 
     context 'with valid params' do
       it 'redirect to some page' do
