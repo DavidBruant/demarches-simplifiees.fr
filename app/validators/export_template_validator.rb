@@ -1,49 +1,64 @@
 class ExportTemplateValidator < ActiveModel::Validator
-  def validate(record)
-    validate_dossier_folder(record)
-    validate_export_pdf(record)
-    validate_pjs(record)
+  def validate(export_template)
+    validate_dossier_folder(export_template)
+    validate_export_pdf(export_template)
+    validate_pjs(export_template)
   end
 
   private
 
-  def validate_dossier_folder(record)
-    content = record.dossier_folder['template']['content']&.first&.fetch('content', nil)
-    mention = attribute_content_mention(content)
-    if mention&.fetch("id", nil) != "dossier_number"
-      record.errors.add :dossier_folder, :dossier_number_mandatory
+  def validate_dossier_folder(export_template)
+    template = export_template.dossier_folder['template']
+    mentions = leaves(template).then { |leaves| mention_ids(leaves) }
+
+    if !'dossier_number'.in?(mentions)
+      export_template.errors.add(:dossier_folder, :dossier_number_mandatory)
     end
   end
 
-  def validate_export_pdf(record)
-    content = record.export_pdf['template']['content']&.first&.fetch('content', nil)
-    if attribute_content_text(content).blank? && attribute_content_mention(content).blank?
-      record.errors.add :export_pdf, :blank
+  def validate_export_pdf(export_template)
+    template = export_template.export_pdf['template']
+    texts, mentions = leaves(template).then { |leaves| [texts(leaves), mention_ids(leaves)] }
+
+    if texts.empty? && mentions.empty?
+      export_template.errors.add(:export_pdf, :blank)
     end
   end
 
-  def attribute_content_text(content)
-    content&.find { |elem| elem["type"] == "text" }&.fetch("text", nil)
-  end
+  def validate_pjs(export_template)
+    pjs = export_template.groupe_instructeur.procedure.exportables_pieces_jointes
+    libelle_by_stable_ids = pjs.pluck(:stable_id, :libelle).to_h { |sid, l| [sid.to_s, l] }
 
-  def attribute_content_mention(content)
-    content&.find { |elem| elem["type"] == "mention" }&.fetch("attrs", nil)
-  end
+    export_template.pjs.each do |pj|
+      texts, mentions = leaves(pj['template']).then { |leaves| [texts(leaves), mention_ids(leaves)] }
 
-  def validate_pjs(record)
-    record.pjs.each do |pj|
-      pj_sym = pj.symbolize_keys
-      libelle = record.groupe_instructeur.procedure.exportables_pieces_jointes.find { _1.stable_id.to_s == pj_sym[:stable_id] }&.libelle
-      validate_content(record, pj_sym[:template], libelle)
+      if texts.empty? && mentions.empty?
+        libelle = libelle_by_stable_ids[pj['stable_id']]
+        export_template.errors.add(libelle, I18n.t(:blank, scope: 'errors.messages'))
+      end
     end
   end
 
-  def validate_content(record, attribute_content, attribute)
-    if attribute_content.nil? || attribute_content["content"].nil? ||
-        attribute_content["content"].first.nil? ||
-        attribute_content["content"].first["content"].nil? ||
-        (attribute_content["content"].first["content"].find { |elem| elem["text"].blank? } && attribute_content["content"].first["content"].find { |elem| elem["type"] == "mention" }["attrs"].blank?)
-      record.errors.add attribute, I18n.t(:blank, scope: 'errors.messages')
-    end
+  def leaves(template)
+    return [] if !template.is_a?(Hash)
+
+    first_content = template['content']
+    return [] if !first_content.is_a?(Array)
+
+    first_content.flat_map { |content| content['content'] if content.is_a?(Hash) }.compact
+  end
+
+  def mention_ids(leaves)
+    leaves
+      .filter { |leaf| leaf['type'] == 'mention' }
+      .map { |mention| mention['attrs']['id'] }
+      .filter(&:present?)
+  end
+
+  def texts(leaves)
+    leaves
+      .filter { |leaf| leaf['type'] == 'text' }
+      .map { |text| text['text'] }
+      .filter(&:present?)
   end
 end
