@@ -10,7 +10,7 @@ en:
           export_pdf: "How would you like to name the pdf file containing all the user's answers?"
         name: "Template's name"
         dossier_folder: "Directory's name for pdf format"
-        export_pdf: "Export's filename"
+        export_pdf: "File in pdf format"
     errors:
       models:
         export_template:

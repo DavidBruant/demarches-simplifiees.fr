@@ -26,41 +26,30 @@
 
       = f.hidden_field :kind
 
+      - def readable_template(template) = template['content'][0]['content'].map { _1['type'] == 'text' ? tag.span(_1['text']) : tag.span(_1['attrs']['label'], class: 'fr-tag fr-tag--sm')}.join.then { sanitize(_1) }
+      - tags = render TagsButtonListComponent.new(tags: { nil => @export_template.tags })
+
       %div{ data: { controller: 'tiptap', 'tiptap-attributes-value': { spellcheck: false }.to_json } }
         = f.label '[dossier_folder][template]', class: "fr-label" do
           = "#{t('dossier_folder', scope:)} #{asterisk}"
-          %span.fr-hint-text= t('hints.dossier_folder', scope:)
+          %span.fr-hint-text Nom du répertoire contenant les différents fichiers à exporter
 
         .tiptap-editor{ data: { tiptap_target: 'editor' } }
           = f.hidden_field "[dossier_folder][template]", data: { tiptap_target: 'input' }, value: @export_template.dossier_folder.fetch('template').to_json
         .fr-mt-2w= render TagsButtonListComponent.new(tags: { nil => @export_template.tags })
 
-      %div{ data: { controller: 'tiptap hide-target', 'tiptap-attributes-value': { spellcheck: false }.to_json } }
-        .fr-toggle.fr-toggle--label-left
-          = check_box_tag "export_template[export_pdf][enabled]", true, @export_template.export_pdf.fetch('enabled'), class: 'fr-toggle__input', id: "export_template_export_pdf_enabled", data: { 'hide-target_target': 'source' }
-          = label_tag "export_template_export_pdf_enabled", f.object.class.human_attribute_name(:export_pdf), class: 'fr-toggle__label flex align-center', data: { 'fr-checked-label': 'Exporté', 'fr-unchecked-label': 'Ignoré' }
+        = render Dsfr::NoticeComponent.new(closable: false) do |c|
+          - c.with_title do
+            Sélectionnez les fichiers que vous souhaitez exporter
 
-        %div{ class: class_names( 'fr-hidden': !@export_template.export_pdf.fetch('enabled') ), data: { hide_target_target: 'toHide' } }
-          .tiptap-editor{ data: { tiptap_target: 'editor' } }
-            = f.hidden_field "[export_pdf][template]", data: { tiptap_target: 'input' }, value: @export_template.export_pdf.fetch('template').to_json
-          .fr-mt-2w= render TagsButtonListComponent.new(tags: { nil => @export_template.tags })
+        .fr-h3.fr-mt-4w Dossier au format PDF
 
-      - if @exportable_pjs.any?
-        .fr-h3.fr-mt-4w Pieces justificatives
+        = render partial: 'export_item', locals: { item: @export_template.export_pdf, f: f, libelle: f.object.class.human_attribute_name(:export_pdf), tags:, prefix: 'export_template[export_pdf]'}
 
+        %h3.fr-h3.fr-mt-4w Pièces justificatives
         - @exportable_pjs.each do |pj|
-          - export_pj = @export_template.pj(pj.stable_id)
-          = hidden_field_tag "export_template[pjs][][stable_id]", pj.stable_id
-
-          %div{ data: { controller: 'tiptap hide-target', 'tiptap-attributes-value': { spellcheck: false }.to_json } }
-            .fr-toggle.fr-toggle--label-left
-              = check_box_tag "export_template[pjs][][enabled]", true, export_pj&.fetch('enabled'), class: 'fr-toggle__input', id: "export_template_pjs_#{pj.stable_id}_enabled", data: { 'hide-target_target': 'source' }
-              = label_tag "export_template_pjs_#{pj.stable_id}_enabled", pj.libelle, class: 'fr-toggle__label flex align-center', data: { 'fr-checked-label': 'Exporté', 'fr-unchecked-label': 'Ignoré' }
-
-            %div{ class: class_names( 'fr-hidden': !export_pj&.fetch('enabled') ), data: { hide_target_target: 'toHide' } }
-              .tiptap-editor{ data: { tiptap_target: 'editor' } }
-                = hidden_field_tag "export_template[pjs][][template]", "#{export_pj&.fetch('template')&.to_json}" , data: { tiptap_target: 'input' }
-              .fr-mt-2w= render TagsButtonListComponent.new(tags: { nil => @export_template.pj_tags })
+          - item = @export_template.pj(pj.stable_id)
+          = render partial: 'export_item', locals: { item:, libelle: pj.libelle, tags:, prefix: 'export_template[pjs][]'}
 
       .fixed-footer
         .fr-container

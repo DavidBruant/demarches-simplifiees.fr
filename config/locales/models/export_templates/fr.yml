@@ -10,7 +10,7 @@ fr:
           export_pdf: "Comment souhaitez-vous nommer le fichier pdf qui contient toutes les réponses de l'usager ?"
         name: "Nom du modèle"
         dossier_folder: Nom du répertoire
-        export_pdf: "Nom du dossier au format pdf"
+        export_pdf: "Dossier au format pdf"
     errors:
       models:
         export_template:
