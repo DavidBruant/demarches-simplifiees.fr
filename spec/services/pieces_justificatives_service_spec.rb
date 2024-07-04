@@ -359,7 +359,11 @@ describe PiecesJustificativesService do
     end
 
     context 'with export template' do
-      let(:export_template) { create(:export_template, :with_custom_ddd_prefix, ddd_prefix: "DOSSIER-", groupe_instructeur: procedure.defaut_groupe_instructeur) }
+      let(:export_template) do
+        create(:export_template, groupe_instructeur: procedure.defaut_groupe_instructeur).tap do |export_template|
+          export_template.dossier_folder['template']['content'][0]['content'][0]['text'] = 'DOSSIER-'
+        end
+      end
       subject { PiecesJustificativesService.new(user_profile:, export_template:).generate_dossiers_export(dossiers) }
 
       it 'gives custom name to export pdf file' do
