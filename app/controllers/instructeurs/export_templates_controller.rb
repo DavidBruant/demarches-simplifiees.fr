@@ -63,7 +63,7 @@ module Instructeurs
       h[:dossier_folder][:enabled] = true
 
       pj_stable_ids = @exportable_pjs.map { _1.stable_id.to_s }
-      h[:pjs] = h[:pjs].filter { _1[:stable_id].in?(pj_stable_ids) }
+      h[:pjs] = Array.wrap(h[:pjs]).filter { _1[:stable_id].in?(pj_stable_ids) }
 
       h
     end

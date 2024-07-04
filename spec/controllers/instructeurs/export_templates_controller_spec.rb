@@ -97,6 +97,25 @@ describe Instructeurs::ExportTemplatesController, type: :controller do
         expect { subject }.to raise_error(ActiveRecord::RecordNotFound)
       end
     end
+
+    context 'without pjs' do
+      let(:export_template_params) do
+        {
+          name: "coucou",
+          kind: "zip",
+          groupe_instructeur_id: groupe_instructeur.id,
+          export_pdf:,
+          dossier_folder: export_conf(text: "DOSSIER_", enabled: true)
+        }
+      end
+
+      it 'works' do
+        subject
+
+        expect(flash.notice).to eq "Le modèle d'export coucou a bien été créé"
+        expect(ExportTemplate.last.pjs).to match_array([])
+      end
+    end
   end
 
   describe '#edit' do
