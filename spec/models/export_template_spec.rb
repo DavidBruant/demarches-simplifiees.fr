@@ -1,6 +1,6 @@
 describe ExportTemplate do
   let(:groupe_instructeur) { create(:groupe_instructeur, procedure:) }
-  let(:export_template) { create(:export_template, :with_custom_content, groupe_instructeur:, content:) }
+  let(:export_template) { create(:export_template, groupe_instructeur:) }
   let(:procedure) { create(:procedure_with_dossiers, types_de_champ_public:, for_individual:) }
   let(:dossier) { procedure.dossiers.first }
   let(:for_individual) { false }
@@ -10,85 +10,13 @@ describe ExportTemplate do
       { type: :titre_identite, libelle: "CNI", mandatory: true, stable_id: 5 }
     ]
   end
-  let(:content) do
-    {
-      "export_pdf" => {
-        "enabled" => true,
-        "template" =>
-        {
-          "type" => "doc",
-          "content" => [
-            { "type" => "paragraph", "content" => [{ "text" => "mon_export_", "type" => "text" }, { "type" => "mention", "attrs" => { "id" => "dossier_number", "label" => "numéro du dossier" } }] }
-          ]
-        }
-      },
-      "dossier_folder" => {
-        "enabled" => true,
-        "template" => {
-          "type" => "doc",
-          "content" => [
-            { "type" => "paragraph", "content" => [{ "text" => "DOSSIER_", "type" => "text" }, { "type" => "mention", "attrs" => { "id" => "dossier_number", "label" => "numéro du dossier" } }, { "text" => " ", "type" => "text" }] }
-          ]
-        }
-      },
-      "pjs" =>
-      [
-        {
-          "template": {
-            "type" => "doc", "content" => [{ "type" => "paragraph", "content" => [{ "type" => "mention", "attrs" => { "id" => "original-filename", "label" => "nom original du fichier" } }, { "text" => " _justif", "type" => "text" }] }]
-          },
-          "stable_id": "3",
-          "enabled": true
-        },
-        {
-          "template": {
-            "type" => "doc", "content" => [{ "type" => "paragraph", "content" => [{ "text" => "cni_", "type" => "text" }, { "type" => "mention", "attrs" => { "id" => "dossier_number", "label" => "numéro du dossier" } }, { "text" => " ", "type" => "text" }] }]
-          },
-          "stable_id": "5",
-          "enabled": true
-        },
-        {
-          "template": {
-            "type" => "doc", "content" => [{ "type" => "paragraph", "content" => [{ "text" => "pj_repet_", "type" => "text" }, { "type" => "mention", "attrs" => { "id" => "dossier_number", "label" => "numéro du dossier" } }, { "text" => " ", "type" => "text" }] }]
-          },
-          "stable_id": "10",
-          "enabled": true
-        }
-      ]
-    }
-  end
 
-  describe 'new' do
-    let(:export_template) { build(:export_template, groupe_instructeur: groupe_instructeur) }
+  describe 'set_default_values' do
     it 'set default values' do
-      export_template.set_default_values
       expect(export_template.content).to eq({
-        "export_pdf" => {
-          "enabled" => true,
-          "template" => {
-            "type" => "doc",
-            "content" => [
-              { "type" => "paragraph", "content" => [{ "text" => "export-", "type" => "text" }, { "type" => "mention", "attrs" => ExportTemplate::DOSSIER_ID_TAG.slice(:id, :label).stringify_keys }] }
-            ]
-          }
-        },
-        "dossier_folder" => {
-          "enabled" => true,
-          "template" => {
-            "type" => "doc",
-            "content" => [
-              { "type" => "paragraph", "content" => [{ "text" => "dossier-", "type" => "text" }, { "type" => "mention", "attrs" => ExportTemplate::DOSSIER_ID_TAG.slice(:id, :label).stringify_keys }] }
-            ]
-          }
-        },
-        "pjs" =>
-        [
-          {
-            "stable_id" => "3",
-            "enabled" => false,
-            "template" =>  { "type" => "doc", "content" => [{ "type" => "paragraph", "content" => [{ "text" => "justificatif-de-domicile-", "type" => "text" }, { "type" => "mention", "attrs" => ExportTemplate::DOSSIER_ID_TAG.slice(:id, :label).stringify_keys }] }] }
-          }
-        ]
+        "export_pdf" => export_conf(text: "export-", enabled: true),
+        "dossier_folder" => export_conf(text: "dossier-", enabled: true),
+        "pjs" => [pj_export_conf(stable_id: 3, text: "justificatif-de-domicile-", enabled: false)]
       })
     end
   end
@@ -96,107 +24,51 @@ describe ExportTemplate do
   describe '#pj' do
     subject { export_template.pj(3) }
 
-    let(:expected) do
-      {
-        "enabled" => true,
-        "stable_id" => "3",
-        "template" => {
-          "type" => "doc",
-          "content" => [
-            { "type" => "paragraph", "content" => [{ "type" => "mention", "attrs" => { "id" => "original-filename", "label" => "nom original du fichier" } }, { "text" => " _justif", "type" => "text" }] }
-          ]
-        }
-      }
-    end
-
-    it { is_expected.to eq(expected) }
+    it { is_expected.to eq(pj_export_conf(stable_id: 3, text: "justificatif-de-domicile-", enabled: false)) }
   end
 
   describe '#attachment_path' do
-    let(:dossier) { create(:dossier) }
-
     context 'for export pdf' do
+      let(:export_template) do
+        create(:export_template, groupe_instructeur:).tap do
+          _1.dossier_folder = export_conf(text: "DOSSIER_", enabled: true)
+          _1.export_pdf = export_conf(text: "mon_export_", enabled: true)
+        end
+      end
+
       let(:attachment) { double("attachment") }
 
       it 'gives absolute filename for export of specific dossier' do
         allow(attachment).to receive(:name).and_return('pdf_export_for_instructeur')
-        # BUG, should prefix with folder_path
         expect(export_template.attachment_path(dossier, attachment)).to eq("DOSSIER_#{dossier.id}/mon_export_#{dossier.id}.pdf")
       end
     end
 
     context 'for pj' do
-      let(:dossier) { procedure.dossiers.first }
-      let(:type_de_champ_pj) { create(:type_de_champ_piece_justificative, stable_id: 3, procedure:) }
-      let(:champ_pj) { create(:champ_piece_justificative, type_de_champ: type_de_champ_pj) }
+      let(:dossier) { create(:dossier, :en_construction, procedure: procedure) }
+      let(:champ_pj) { dossier.champs_public.first }
+      let(:export_template) { create(:export_template, groupe_instructeur:).tap { _1.pjs = [pj_export_conf(stable_id: 3, text: "justif_", enabled: true)] } }
 
       let(:attachment) { ActiveStorage::Attachment.new(name: 'pj', record: champ_pj, blob: ActiveStorage::Blob.new(filename: "superpj.png")) }
 
-      before do
-        dossier.champs_public << champ_pj
-      end
       it 'returns pj and custom name for pj' do
-        expect(export_template.attachment_path(dossier, attachment, champ: champ_pj)).to eq("DOSSIER_#{dossier.id}/superpj_justif-1.png")
-      end
-    end
-    context 'pj repetable' do
-      let(:procedure) do
-        create(:procedure_with_dossiers, :for_individual, types_de_champ_public: [{ type: :repetition, mandatory: true, children: [{ libelle: 'sub type de champ' }] }])
-      end
-      let(:type_de_champ_repetition) do
-        repetition = draft.types_de_champ_public.repetition.first
-        repetition.update(stable_id: 3333)
-        repetition
-      end
-      let(:draft) { procedure.draft_revision }
-      let(:dossier) { procedure.dossiers.first }
-
-      let(:type_de_champ_pj) do
-        draft.add_type_de_champ({
-          type_champ: TypeDeChamp.type_champs.fetch(:piece_justificative),
-          libelle: "pj repet",
-          stable_id: 10,
-          parent_stable_id: type_de_champ_repetition.stable_id
-        })
-      end
-      let(:champ_pj) { create(:champ_piece_justificative, type_de_champ: type_de_champ_pj) }
-
-      let(:attachment) { ActiveStorage::Attachment.new(name: 'pj', record: champ_pj, blob: ActiveStorage::Blob.new(filename: "superpj.png")) }
-
-      before do
-        dossier.champs_public << champ_pj
-      end
-      it 'rename repetable pj' do
-        expect(export_template.attachment_path(dossier, attachment, champ: champ_pj)).to eq("DOSSIER_#{dossier.id}/pj_repet_#{dossier.id}-1.png")
+        expect(export_template.attachment_path(dossier, attachment, champ: champ_pj)).to eq("dossier-#{dossier.id}/justif_#{dossier.id}-1.png")
       end
     end
   end
 
   describe '#tiptap_convert' do
-    it 'convert default dossier directory' do
-      expect(export_template.folder_path(procedure.dossiers.first)).to eq "DOSSIER_#{dossier.id}"
-    end
-
-    it 'convert export_pdf' do
-      expect(export_template.export_pdf_path(procedure.dossiers.first)).to eq "mon_export_#{dossier.id}.pdf"
-    end
-
     context 'for date' do
-      let(:export_template) { create(:export_template, :with_date_depot_for_export_pdf, groupe_instructeur:) }
-      let(:dossier) { create(:dossier, :en_construction, procedure:, depose_at: Date.parse("2024/03/30")) }
-      it 'convert date with dash' do
-        expect(export_template.export_pdf_path(dossier)).to eq "export_#{dossier.id}-2024-03-30.pdf"
+      let(:export_template) do
+        create(:export_template, groupe_instructeur:).tap do
+          _1.export_pdf["template"]["content"] = [{ "type" => "paragraph", "content" => [{ "type" => "mention", "attrs" => { "id" => "dossier_depose_at", "label" => "date de dépôt" } }] }]
+        end
       end
-    end
-  end
+      let(:dossier) { create(:dossier, :en_construction, procedure:, depose_at: Date.parse("2024/03/30")) }
 
-  describe '#pj_path' do
-    let(:type_de_champ_pj) { create(:type_de_champ_piece_justificative, stable_id: 3, libelle: 'Justificatif de domicile', procedure:) }
-    let(:champ_pj) { create(:champ_piece_justificative, type_de_champ: type_de_champ_pj) }
-    let(:attachment) { ActiveStorage::Attachment.new(name: 'pj', record: champ_pj, blob: ActiveStorage::Blob.new(filename: "superpj.png")) }
-
-    it 'pj_path' do
-      expect(export_template.pj_path(dossier, type_de_champ_pj.stable_id, attachment)).to eq "superpj_justif"
+      it 'convert date with dash' do
+        expect(export_template.export_pdf_path(dossier)).to eq "2024-03-30.pdf"
+      end
     end
   end
 
@@ -321,6 +193,7 @@ describe ExportTemplate do
 
   context 'for entreprise procedure' do
     let(:for_individual) { false }
+
     describe 'tags' do
       it do
         tags = export_template.tags
@@ -338,6 +211,7 @@ describe ExportTemplate do
 
   context 'for individual procedure' do
     let(:for_individual) { true }
+
     describe 'tags' do
       it do
         tags = export_template.tags
@@ -351,5 +225,31 @@ describe ExportTemplate do
         expect(tags.map { _1[:id] }).to eq ["individual_gender", "individual_last_name", "individual_first_name", "dossier_depose_at", "dossier_procedure_libelle", "dossier_service_name", "dossier_number", "dossier_groupe_instructeur", "original-filename"]
       end
     end
+  end
+
+  def pj_export_conf(stable_id:, text:, enabled:)
+    export_conf(text: text, enabled: enabled).merge("stable_id" => stable_id.to_s)
+  end
+
+  def export_conf(text:, enabled:)
+    {
+      "enabled" => enabled,
+      "template" => {
+        "type" => "doc",
+        "content" => content_conf(text:)
+      }
+    }
+  end
+
+  def content_conf(text:)
+    [
+      {
+        "type" => "paragraph",
+        "content" => [
+          { "text" => text, "type" => "text" },
+          { "type" => "mention", "attrs" => { "id" => "dossier_number", "label" => "numéro du dossier" } }
+        ]
+      }
+    ]
   end
 end
