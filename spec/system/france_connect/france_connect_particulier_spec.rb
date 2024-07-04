@@ -41,8 +41,27 @@ describe 'France Connect Particulier Connexion' do
             before { page.find('.fr-connect').click }
 
             scenario 'he is redirected to user dossiers page' do
-              expect(page).to have_content('Dossiers')
+              expect(page).to have_content("Choisissez votre e-mail de contact")
+              expect(page).to have_selector("#use_france_connect_email_yes", visible: false, wait: 10)
+              find('#use_france_connect_email_yes').click
+              click_on 'Confirmer'
+              expect(page).to have_content("Confirmation envoyée")
+              click_on 'Continuer'
               expect(User.find_by(email: email)).not_to be nil
+            end
+
+            scenario 'he can choose not to use FranceConnect email and input an alternative email' do
+              expect(page).to have_content("Choisissez votre e-mail de contact")
+              expect(page).to have_selector("#use_france_connect_email_no", visible: false, wait: 10)
+
+              find('#use_france_connect_email_no').click
+              expect(page).to have_selector("input[name='alternative_email']", visible: true, wait: 10)
+
+              fill_in 'alternative_email', with: 'alternative@example.com'
+              click_on 'Confirmer'
+              expect(page).to have_content("Confirmation envoyée")
+              click_on 'Continuer'
+              expect(User.find_by(email: 'alternative@example.com')).not_to be nil
             end
           end
 

@@ -87,23 +87,18 @@ describe FranceConnect::ParticulierController, type: :controller do
           let(:fc_user) { nil }
 
           context 'and no user with the same email exists' do
-            it 'creates an user with the same email and log in' do
-              expect { subject }.to change { User.count }.by(1)
-
-              user = User.last
-
-              expect(user.email).to eq(email.downcase)
-              expect(controller.current_user).to eq(user)
-              expect(response).to redirect_to(root_path)
+            it 'render the choose email template to select good email' do
+              expect { subject }.to change { User.count }.by(0)
+              expect(subject).to render_template(:choose_email)
             end
 
-            context 'when invites are pending' do
-              let!(:invite) { create(:invite, email: email, user: nil) }
-              it 'links pending invites' do
-                expect(invite.reload.user).to eq(nil)
-                subject
-                expect(invite.reload.user).to eq(User.last)
-              end
+            it 'assigns the correct france_connect_email when user chooses to use FranceConnect email' do
+              expect { subject }.to change { User.count }.by(0)
+              expect(subject).to render_template(:choose_email)
+
+              post :choose_email, params: { france_connect_email: email, use_france_connect_email: 'true' }
+
+              expect(assigns(:france_connect_email)).to eq(email)
             end
           end
 
@@ -130,17 +125,9 @@ describe FranceConnect::ParticulierController, type: :controller do
       end
 
       context 'when france_connect_particulier_id does not exist in database' do
-        it { expect { subject }.to change { FranceConnectInformation.count }.by(1) }
+        it { expect { subject }.to change { FranceConnectInformation.count }.by(0) }
 
-        describe 'FranceConnectInformation attributs' do
-          let(:stored_fci) { FranceConnectInformation.last }
-
-          before { subject }
-
-          it { expect(stored_fci).to have_attributes(user_info.merge(birthdate: Time.zone.parse(birthdate).to_datetime)) }
-        end
-
-        it { is_expected.to redirect_to(root_path) }
+        it { is_expected.to render_template(:choose_email) }
       end
     end
 
@@ -153,6 +140,209 @@ describe FranceConnect::ParticulierController, type: :controller do
       it { expect(response).to redirect_to(new_user_session_path) }
 
       it { expect(flash[:alert]).to be_present }
+    end
+  end
+
+  describe '#associate_user' do
+    subject { post :associate_user, params: { use_france_connect_email: use_france_connect_email, fci_json: user_info } }
+
+    let(:fci_json) { user_info.to_json }
+    let(:use_france_connect_email) { true }
+    let(:alternative_email) { 'alt@example.com' }
+
+    before do
+      allow_any_instance_of(ApplicationController).to receive(:session).and_return({ france_connect_information: fci_json })
+    end
+
+    context 'when we are using france connect email' do
+      it 'renders the confirmation_sent template' do
+        subject
+        expect(response).to render_template(:confirmation_sent)
+      end
+    end
+
+    context 'when france connect information is missing' do
+      before do
+        allow_any_instance_of(ApplicationController).to receive(:session).and_return({ france_connect_information: nil })
+        subject
+      end
+
+      it 'redirects to new_user_session_path with an alert' do
+        expect(response).to redirect_to(new_user_session_path)
+        expect(flash[:alert]).to eq(I18n.t('france_connect.particulier.associate_user.errors.unable_to_retrieve_information'))
+      end
+    end
+
+    context 'when email is not present' do
+      let(:use_france_connect_email) { false }
+      let(:alternative_email) { nil }
+
+      before { subject }
+
+      it 'redirects to new_user_session_path with an alert' do
+        expect(response).to redirect_to(new_user_session_path)
+        expect(flash[:alert]).to eq('Veuillez fournir un email.')
+      end
+    end
+
+    context 'when associating the user fails' do
+      before do
+        allow_any_instance_of(FranceConnectInformation).to receive(:associate_user!).and_return(false)
+        subject
+      end
+
+      it 'redirects to new_user_session_path with an alert' do
+        expect(response).to redirect_to(new_user_session_path)
+        expect(flash[:alert]).to eq(I18n.t('france_connect.particulier.associate_user.errors.unable_to_send_confirmation'))
+      end
+    end
+
+    context 'when associating the user succeeds' do
+      before do
+        allow_any_instance_of(ApplicationController).to receive(:session).and_return({ france_connect_information: fci_json })
+      end
+
+      it 'calls associate_user! with the correct email' do
+        fci = instance_double('FranceConnectInformation', email_france_connect: 'user@example.com', associate_user!: true)
+        allow(FranceConnectInformation).to receive(:new).and_return(fci)
+
+        expect(fci).to receive(:associate_user!).with('user@example.com')
+        subject
+      end
+
+      it 'renders the confirmation sent template' do
+        fci = instance_double('FranceConnectInformation', email_france_connect: user_info[:email_france_connect], associate_user!: true)
+        allow(FranceConnectInformation).to receive(:new).and_return(fci)
+
+        subject
+        expect(response).to render_template(:confirmation_sent)
+      end
+    end
+  end
+
+  describe '#confirm_email' do
+    let!(:user) { create(:user) }
+    let!(:fci) { create(:france_connect_information, user: user) }
+
+    before do
+      fci.send_custom_confirmation_instructions(user)
+      user.reload
+    end
+
+    let!(:expired_user_confirmation) do
+      user = create(:user)
+      fci = create(:france_connect_information, user: user)
+      token = SecureRandom.hex(10)
+      user.update!(confirmation_token: token, confirmation_sent_at: 3.days.ago)
+      user
+    end
+
+    context 'when the confirmation token is valid' do
+      before do
+        get :confirm_email, params: { token: user.confirmation_token }
+        user.reload
+      end
+
+      it 'updates the email_verified_at and confirmation_token of the user' do
+        expect(user.email_verified_at).to be_present
+        expect(user.confirmation_token).to be_nil
+      end
+
+      it 'redirects to the stored location or root path with a success notice' do
+        expect(response).to redirect_to(root_path(user))
+        expect(flash[:notice]).to eq('Votre email est bien vérifié')
+      end
+
+      it 'calls after_confirmation on the user' do
+        expect(user).to receive(:after_confirmation).and_call_original
+        user.after_confirmation
+      end
+    end
+
+    context 'when invites are pending' do
+      let!(:invite) { create(:invite, email: user.email, user: nil) }
+
+      it 'links pending invites' do
+        get :confirm_email, params: { token: user.confirmation_token }
+        invite.reload
+        expect(invite.user).to eq(user)
+      end
+    end
+
+    context 'when the confirmation token is expired' do
+      before do
+        get :confirm_email, params: { token: expired_user_confirmation.confirmation_token }
+      end
+
+      it 'redirects to the resend confirmation path with an alert' do
+        expect(response).to redirect_to(france_connect_new_resend_confirmation_path)
+        expect(flash[:alert]).to eq('Lien de confirmation expiré. Un nouveau lien de confirmation a été envoyé.')
+      end
+    end
+
+    context 'GET #new_resend_confirmation' do
+      let(:user) { create(:user, email: 'test@example.com', email_verified_at: nil) }
+
+      it 'assigns @user and renders the form' do
+        get :new_resend_confirmation, params: { email: user.email }
+        expect(assigns(:user)).to eq(user)
+        expect(response).to render_template(:new_resend_confirmation)
+      end
+
+      it 'redirects if the email is already confirmed' do
+        user.update(email_verified_at: Time.zone.now)
+        get :new_resend_confirmation, params: { email: user.email }
+        expect(response).to redirect_to(root_path)
+        expect(flash[:alert]).to eq('Adresse email non trouvée ou déjà confirmée.')
+      end
+
+      it 'redirects if the user is not found' do
+        get :new_resend_confirmation, params: { email: 'nonexistent@example.com' }
+        expect(response).to redirect_to(root_path)
+        expect(flash[:alert]).to eq('Adresse email non trouvée ou déjà confirmée.')
+      end
+    end
+
+    context 'POST #resend_confirmation' do
+      let(:user) { create(:user, email: 'test@example.com', email_verified_at: nil) }
+      let(:fci) { create(:france_connect_information, user: user) }
+
+      before do
+        allow(User).to receive(:find_by).with(email: user.email).and_return(user)
+        allow(FranceConnectInformation).to receive(:find_by).with(user: user).and_return(fci)
+      end
+
+      context 'when the user exists and email is not verified' do
+        it 'sends custom confirmation instructions and redirects with notice' do
+          expect(fci).to receive(:send_custom_confirmation_instructions).with(user)
+          post :resend_confirmation, params: { email: user.email }
+          expect(response).to redirect_to(root_path)
+          expect(flash[:notice]).to eq('Votre lien a expiré. Demandez un nouveau lien en cliquant sur le bouton ci-dessous')
+        end
+      end
+
+      context 'when the user does not exist or email is already verified' do
+        let(:verified_user) { create(:user, email: 'verified@example.com', email_verified_at: Time.zone.now) }
+
+        it 'redirects with alert for already verified email' do
+          allow(User).to receive(:find_by).with(email: verified_user.email).and_return(verified_user)
+          allow(FranceConnectInformation).to receive(:find_by).with(user: verified_user).and_return(fci)
+          post :resend_confirmation, params: { email: verified_user.email }
+          expect(response).to redirect_to(root_path)
+          expect(flash[:alert]).to eq('Adresse email non trouvée ou déjà confirmée.')
+        end
+      end
+    end
+
+    context 'when the user is not found' do
+      before do
+        get :confirm_email, params: { token: 'invalid_token' }
+      end
+
+      it 'redirects to the resend confirmation path with an alert' do
+        expect(response).to redirect_to(france_connect_new_resend_confirmation_path)
+        expect(flash[:alert]).to eq('Lien de confirmation expiré. Un nouveau lien de confirmation a été envoyé.')
+      end
     end
   end
 
