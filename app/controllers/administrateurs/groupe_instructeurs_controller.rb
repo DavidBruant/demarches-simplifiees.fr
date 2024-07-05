@@ -2,7 +2,6 @@ module Administrateurs
   class GroupeInstructeursController < AdministrateurController
     include ActiveSupport::NumberHelper
     include Logic
-    include UninterlacePngConcern
     include GroupeInstructeursSignatureConcern
 
     before_action :ensure_not_super_admin!, only: [:add_instructeur]
