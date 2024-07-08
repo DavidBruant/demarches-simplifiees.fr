@@ -35,26 +35,20 @@ class DossierPreloader
 
   private
 
-  # returns: { revision_id : { type_de_champ_id : position } }
+  # returns: { revision_id : { stable_id : position } }
   def positions
     @positions ||= ProcedureRevisionTypeDeChamp
       .where(revision_id: @dossiers.pluck(:revision_id).uniq)
-      .select(:revision_id, :type_de_champ_id, :position)
+      .includes(:type_de_champ)
       .group_by(&:revision_id)
       .transform_values do |coordinates|
-        coordinates.index_by(&:type_de_champ_id).transform_values(&:position)
+        coordinates.index_by(&:stable_id).transform_values(&:position)
       end
   end
 
   def load_dossiers(dossiers, pj_template: false)
     to_include = @includes_for_champ.dup
     to_include << [piece_justificative_file_attachments: :blob]
-
-    if pj_template
-      to_include << { type_de_champ: { piece_justificative_template_attachment: :blob } }
-    else
-      to_include << :type_de_champ
-    end
 
     all_champs = Champ
       .includes(to_include)
@@ -121,8 +115,8 @@ class DossierPreloader
     dossier.association(:champs).target += champs
 
     parent.association(name).target = champs
-      .filter { positions[dossier.revision_id][_1.type_de_champ_id].present? }
-      .sort_by { [_1.row_id, positions[dossier.revision_id][_1.type_de_champ_id]] }
+      .filter { positions[dossier.revision_id][_1.stable_id].present? }
+      .sort_by { [_1.row_id, positions[dossier.revision_id][_1.stable_id]] }
 
     # Load children champs
     champs.filter(&:block?).each do |parent_champ|

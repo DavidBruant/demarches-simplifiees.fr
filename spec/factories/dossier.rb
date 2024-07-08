@@ -259,7 +259,7 @@ FactoryBot.define do
           elsif type_de_champ.multiple_drop_down_list?
             type_de_champ.drop_down_list_enabled_non_empty_options.first(2).to_json
           end
-          attrs = { stable_id: type_de_champ.stable_id, dossier:, type_de_champ:, value: }.compact
+          attrs = { stable_id: type_de_champ.stable_id, dossier:, value: }.compact
           create(:"champ_do_not_use_#{type_de_champ.type_champ}", **attrs)
         end
         dossier.reload
@@ -275,7 +275,7 @@ FactoryBot.define do
           elsif type_de_champ.multiple_drop_down_list?
             type_de_champ.drop_down_list_enabled_non_empty_options.first(2).to_json
           end
-          attrs = { stable_id: type_de_champ.stable_id, dossier:, private: true, type_de_champ:, value: }.compact
+          attrs = { stable_id: type_de_champ.stable_id, dossier:, private: true, value: }.compact
           create(:"champ_do_not_use_#{type_de_champ.type_champ}", **attrs)
         end
         dossier.reload
