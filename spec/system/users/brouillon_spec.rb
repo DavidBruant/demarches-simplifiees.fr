@@ -41,17 +41,17 @@ describe 'The user' do
     select('Martinique', from: form_id_for('regions'))
     select('02 – Aisne', from: form_id_for('departements'))
 
-    scroll_to(find_field('communes'), align: :center)
-    fill_in('communes', with: '60400')
-    find('.fr-menu__item', text: 'Brétigny (60400)').click
-    wait_until { champ_value_for('communes') == "Brétigny" }
-
     scroll_to(find_field('address'), align: :center)
     fill_in('address', with: '78 Rue du Grés 30310 Vergè')
     find('.fr-menu__item', text: '78 Rue du Grés 30310 Vergèze').click
     wait_until { champ_value_for('address') == '78 Rue du Grés 30310 Vergèze' }
     wait_until { champ_for('address').full_address? }
     expect(champ_for('address').departement_code_and_name).to eq('30 – Gard')
+
+    scroll_to(find_field('communes'), align: :center)
+    fill_in('communes', with: '60400')
+    find('.fr-menu__item', text: 'Brétigny (60400)').click
+    wait_until { champ_value_for('communes') == "Brétigny" }
 
     scroll_to(find_field('annuaire_education'), align: :center)
     fill_in('annuaire_education', with: 'Moulin')
