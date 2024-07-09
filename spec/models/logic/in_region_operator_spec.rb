@@ -18,7 +18,7 @@ describe Logic::InRegionOperator do
       end # private method called before save to fill value, which is required for compute
   end
 
-  let(:tdc_departement) { procedure.active_revision.types_de_champ.third}
+  let(:tdc_departement) { procedure.active_revision.types_de_champ.third }
   let(:champ_departement) { Champs::DepartementChamp.new(value: '01', stable_id: tdc_departement.stable_id, dossier:) }
 
   describe '#compute' do

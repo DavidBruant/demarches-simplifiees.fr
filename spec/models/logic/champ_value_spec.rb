@@ -62,7 +62,7 @@ describe Logic::ChampValue do
 
     context 'dropdown tdc' do
       let(:tdc_type) { :drop_down_list }
-      let(:champ) { Champs::DropDownListChamp.new(value:, other:, stable_id: tdc.stable_id,  dossier:) }
+      let(:champ) { Champs::DropDownListChamp.new(value:, other:, stable_id: tdc.stable_id, dossier:) }
       let(:value) { 'val1' }
       let(:other) { nil }
 
