@@ -1,7 +1,7 @@
 describe Champs::DateChamp do
   let(:type_de_champ) { create(:type_de_champ_date) }
   let(:date_champ) { described_class.new }
-  before { allow(date_champ).to receive(:type_de_champ).and_return(type_de_champ)}
+  before { allow(date_champ).to receive(:type_de_champ).and_return(type_de_champ) }
 
   describe '#convert_to_iso8601' do
     it 'preserves nil' do
