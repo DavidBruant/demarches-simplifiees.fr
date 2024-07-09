@@ -28,7 +28,9 @@ describe Champs::PieceJustificativeChamp do
   end
 
   describe "#for_export" do
-    let(:champ) { create(:champ_piece_justificative) }
+    let(:procedure) { create(:procedure, types_de_champ_public: [{type: :piece_justificative}])}
+    let(:dossier) { create(:dossier, :with_populated_champs, procedure:)}
+    let(:champ) { dossier.champs.first }
     subject { champ.for_export }
 
     it { is_expected.to eq('toto.txt') }
@@ -40,7 +42,9 @@ describe Champs::PieceJustificativeChamp do
   end
 
   describe '#for_api' do
-    let(:champ) { create(:champ_piece_justificative) }
+    let(:procedure) { create(:procedure, types_de_champ_public: [{type: :piece_justificative}])}
+    let(:dossier) { create(:dossier, :with_populated_champs, procedure:)}
+    let(:champ) { dossier.champs.first }
 
     before { champ.piece_justificative_file.first.blob.update(virus_scan_result:) }
 
