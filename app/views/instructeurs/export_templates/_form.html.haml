@@ -10,13 +10,12 @@
   .fr-grid-row.fr-grid-row--gutters
     .fr-col-12.fr-col-md-8.fr-pr-4w
       = form_with url: form_url, model: @export_template, local: true, data: { turbo: 'true', controller: 'autosubmit' } do |f|
-        - scope = 'activerecord.attributes.export_template'
 
         = render Dsfr::InputComponent.new(form: f, attribute: :name, input_type: :text_field)
 
         .fr-input-group{ class: class_names('fr-hidden': groupe_instructeurs.one?) }
           = f.label :groupe_instructeur_id, class: 'fr-label' do
-            = "#{t('groupe_instructeur_id', scope:)} #{asterisk}"
+            = "#{ExportTemplate.human_attribute_name('groupe_instructeur_id')} #{asterisk}"
             %span.fr-hint-text Avec quel groupe instructeur souhaitez-vous partager ce modèle d'export ?
           = f.collection_select :groupe_instructeur_id, groupe_instructeurs, :id, :label, {}, class: 'fr-select'
 
@@ -25,7 +24,7 @@
 
         %div{ data: { controller: 'tiptap', 'tiptap-attributes-value': { spellcheck: false }.to_json } }
           = f.label '[dossier_folder][template]', class: "fr-label" do
-            = "#{t('dossier_folder', scope:)} #{asterisk}"
+            = "#{ExportTemplate.human_attribute_name('dossier_folder')} #{asterisk}"
             %span.fr-hint-text Nom du répertoire contenant les différents fichiers à exporter
 
           .tiptap-editor{ data: { tiptap_target: 'editor' } }
@@ -38,7 +37,7 @@
 
           .fr-h3.fr-mt-4w Dossier au format PDF
 
-          = render partial: 'export_item', locals: { item: @export_template.export_pdf, f: f, libelle: f.object.class.human_attribute_name(:export_pdf), tags:, prefix: 'export_template[export_pdf]'}
+          = render partial: 'export_item', locals: { item: @export_template.export_pdf, f: f, libelle: ExportTemplate.human_attribute_name(:export_pdf), tags:, prefix: 'export_template[export_pdf]'}
 
           %h3.fr-h3.fr-mt-4w Pièces justificatives
           - @exportable_pjs.each do |pj|
