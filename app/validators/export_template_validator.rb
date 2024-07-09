@@ -8,7 +8,7 @@ class ExportTemplateValidator < ActiveModel::Validator
   private
 
   def validate_dossier_folder(export_template)
-    template = export_template.dossier_folder['template']
+    template = export_template.dossier_folder.template
     mentions = leaves(template).then { |leaves| mention_ids(leaves) }
 
     if !'dossier_number'.in?(mentions)
@@ -17,9 +17,9 @@ class ExportTemplateValidator < ActiveModel::Validator
   end
 
   def validate_export_pdf(export_template)
-    return if !export_template.export_pdf['enabled']
+    return if !export_template.export_pdf.enabled?
 
-    template = export_template.export_pdf['template']
+    template = export_template.export_pdf.template
     texts, mentions = leaves(template).then { |leaves| [texts(leaves), mention_ids(leaves)] }
 
     if texts.empty? && mentions.empty?
@@ -31,12 +31,12 @@ class ExportTemplateValidator < ActiveModel::Validator
     libelle_by_stable_ids = pj_libelle_by_stable_id(export_template)
 
     export_template.pjs.each do |pj|
-      next if !pj['enabled']
+      next if !pj.enabled?
 
-      texts, mentions = leaves(pj['template']).then { |leaves| [texts(leaves), mention_ids(leaves)] }
+      texts, mentions = leaves(pj.template).then { |leaves| [texts(leaves), mention_ids(leaves)] }
 
       if texts.empty? && mentions.empty?
-        libelle = libelle_by_stable_ids[pj['stable_id']]
+        libelle = libelle_by_stable_ids[pj.stable_id]
         export_template.errors.add(libelle, I18n.t(:blank, scope: 'errors.messages'))
       end
     end

@@ -7,29 +7,43 @@ class ExportTemplate < ApplicationRecord
   has_many :exports, dependent: :nullify
   validates_with ExportTemplateValidator
 
-  store_accessor :content, :dossier_folder, :export_pdf, :pjs
-
   DOSSIER_STATE = Dossier.states.fetch(:en_construction)
   FORMAT_DATE = "%Y-%m-%d"
 
   def pj(stable_id)
-    pjs.find { _1['stable_id'] == stable_id.to_s }
+    pjs.find { _1.stable_id == stable_id.to_s }
+  end
+
+  [:dossier_folder, :export_pdf].each do |name|
+    define_method(name) do
+      ExportItem.new(content[name.to_s])
+    end
+
+    define_method("#{name}=") do |export_item|
+      content[name.to_s] = export_item.to_h
+    end
+  end
+
+  def pjs = content['pjs'].map { ExportItem.new(_1) }
+
+  def pjs=(export_item)
+    content['pjs'] = export_item.map(&:to_h)
   end
 
   def set_default_values
-    self.dossier_folder = { "template" => template_with_dossier_id_suffix("dossier"), "enabled" => true }
-    self.export_pdf = { "template" => template_with_dossier_id_suffix("export"), "enabled" => true }
+    self.dossier_folder = ExportItem.new({ "template" => template_with_dossier_id_suffix("dossier"), "enabled" => true })
+    self.export_pdf = ExportItem.new({ "template" => template_with_dossier_id_suffix("dossier"), "enabled" => true })
 
     self.pjs = procedure.exportables_pieces_jointes.map do |pj|
       nice_libelle = transliterate(pj.libelle).downcase
         .gsub(/[^0-9a-z\-\_]/, ' ').gsub(/[[:space:]]+/, ' ').strip
         .then { truncate(_1, omission: '', separator: ' ') }.parameterize
 
-      {
+      ExportItem.new(
         "stable_id" => pj.stable_id.to_s,
         "template" => template_with_dossier_id_suffix(nice_libelle),
         "enabled" => false
-      }
+      )
     end
   end
 
@@ -47,15 +61,15 @@ class ExportTemplate < ApplicationRecord
   end
 
   def folder_path(dossier)
-    render_attributes_for(dossier_folder['template'], dossier)
+    render_attributes_for(dossier_folder.template, dossier)
   end
 
   def export_pdf_path(dossier)
-    "#{render_attributes_for(export_pdf['template'], dossier)}.pdf"
+    "#{render_attributes_for(export_pdf.template, dossier)}.pdf"
   end
 
   def pj_path(dossier, pj_stable_id, attachment = nil)
-    render_attributes_for(pj(pj_stable_id)['template'], dossier, attachment)
+    render_attributes_for(pj(pj_stable_id).template, dossier, attachment)
   end
 
   def attachment_path(dossier, attachment, index: 0, row_index: nil, champ: nil)

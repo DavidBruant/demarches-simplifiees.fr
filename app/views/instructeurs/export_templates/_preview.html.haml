@@ -14,13 +14,13 @@
             %span.fr-icon-folder-line
             #{export_template.folder_path(dossier)}/
             %ul
-              - if export_template.export_pdf&.fetch('enabled')
+              - if export_template.export_pdf.enabled?
                 %li
                   %span.fr-icon-pdf-2-line
                   = export_template.export_pdf_path(dossier)
 
               - procedure.exportables_pieces_jointes.each do |pj|
-                - if export_template.pj(pj.stable_id)&.fetch('enabled')
+                - if export_template.pj(pj.stable_id).enabled?
                   %li
                     %span.fr-icon-file-image-line
                     #{export_template.pj_path(dossier, pj.stable_id)}-1.jpg
