@@ -31,18 +31,25 @@
             = f.hidden_field "[dossier_folder][template]", data: { tiptap_target: 'input' }, value: @export_template.dossier_folder.fetch('template').to_json
           .fr-mt-2w= tags
 
-          = render Dsfr::NoticeComponent.new(closable: false) do |c|
-            - c.with_title do
-              Sélectionnez les fichiers que vous souhaitez exporter
+        = render Dsfr::NoticeComponent.new(closable: false) do |c|
+          - c.with_title do
+            Sélectionnez les fichiers que vous souhaitez exporter
 
-          .fr-h3.fr-mt-4w Dossier au format PDF
+        %h3 Dossier au format PDF
+        = render partial: 'export_item',
+          locals: { item: @export_template.export_pdf,
+            libelle: ExportTemplate.human_attribute_name(:export_pdf),
+            tags:,
+            prefix: 'export_template[export_pdf]' }
 
-          = render partial: 'export_item', locals: { item: @export_template.export_pdf, f: f, libelle: ExportTemplate.human_attribute_name(:export_pdf), tags:, prefix: 'export_template[export_pdf]'}
-
-          %h3.fr-h3.fr-mt-4w Pièces justificatives
-          - @exportable_pjs.each do |pj|
-            - item = @export_template.pj(pj.stable_id)
-            = render partial: 'export_item', locals: { item:, libelle: pj.libelle, tags:, prefix: 'export_template[pjs][]'}
+        %h3 Pièces justificatives
+        - @exportable_pjs.each do |pj|
+          - item = @export_template.pj(pj.stable_id)
+          = render partial: 'export_item',
+            locals: { item:,
+              libelle: pj.libelle,
+              tags:,
+              prefix: 'export_template[pjs][]'}
 
         .fixed-footer
           .fr-container
