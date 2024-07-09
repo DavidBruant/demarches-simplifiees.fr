@@ -32,7 +32,10 @@ end
 
 describe Logic::GreaterThan do
   include Logic
-  let(:champ) { Champs::IntegerNumberChamp.new(value: nil, stable_id: 1, type_de_champ: create(:type_de_champ_number)) }
+  let(:procedure) { create(:procedure, types_de_champ_public: [{ type: :integer_number }]) }
+  let(:tdc) { procedure.active_revision.types_de_champ.first }
+  let(:dossier) { create(:dossier, procedure:) }
+  let(:champ) { Champs::IntegerNumberChamp.new(value: nil, stable_id: tdc.stable_id, dossier:) }
 
   it 'computes' do
     expect(greater_than(constant(1), constant(1)).compute).to be(false)
@@ -43,8 +46,6 @@ end
 
 describe Logic::GreaterThanEq do
   include Logic
-  let(:champ) { Champs::IntegerNumberChamp.new(value: nil, stable_id: 1) }
-
   it 'computes' do
     expect(greater_than_eq(constant(0), constant(1)).compute).to be(false)
     expect(greater_than_eq(constant(1), constant(1)).compute).to be(true)
