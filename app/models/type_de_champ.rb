@@ -730,7 +730,6 @@ class TypeDeChamp < ApplicationRecord
       return true if type_champ_to_champ_class_name(type_champ) != champ.type
       # special case for linked drop down champ – it's blank implementation is not what you think
       return champ.value.blank? if type_champ == TypeDeChamp.type_champs.fetch(:linked_drop_down_list)
-
       champ.blank?
     end
   end
