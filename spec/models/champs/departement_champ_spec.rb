@@ -31,7 +31,9 @@ describe Champs::DepartementChamp, type: :model do
     end
 
     describe 'value' do
-      let(:champ) { create(:champ_departements) }
+      let(:procedure) { create(:procedure, types_de_champ_public: [{type: :departements}])}
+      let(:dossier) { create(:dossier, procedure:)}
+      let(:champ) { dossier.champs.first }
       subject { champ.validate(:champs_public_value) }
       before { champ.update_columns(value: value) }
 
@@ -62,7 +64,8 @@ describe Champs::DepartementChamp, type: :model do
   end
 
   describe 'value' do
-    let(:champ) { build(:champ_departements, value: nil) }
+    let(:champ) { described_class.new(value: nil, dossier: build(:dossier)) }
+    before { allow(champ).to receive(:type_de_champ).and_return(build(:type_de_champ_departements)) }
 
     it 'with code having 2 chars' do
       champ.value = '01'
