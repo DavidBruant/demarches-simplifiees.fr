@@ -20,7 +20,7 @@
           = f.collection_select :groupe_instructeur_id, groupe_instructeurs, :id, :label, {}, class: 'fr-select'
 
         - def readable_template(template) = template['content'][0]['content'].map { _1['type'] == 'text' ? tag.span(_1['text']) : tag.span(_1['attrs']['label'], class: 'fr-tag fr-tag--sm')}.join.then { sanitize(_1) }
-        - tags = render TagsButtonListComponent.new(tags: { nil => @export_template.tags })
+        - tags = render TagsButtonListComponent.new(tags: @export_template.tags)
 
         %div{ data: { controller: 'tiptap', 'tiptap-attributes-value': { spellcheck: false }.to_json } }
           = f.label '[dossier_folder][template]', class: "fr-label" do
@@ -29,7 +29,7 @@
 
           .tiptap-editor{ data: { tiptap_target: 'editor' } }
             = f.hidden_field "[dossier_folder][template]", data: { tiptap_target: 'input' }, value: @export_template.dossier_folder.fetch('template').to_json
-          .fr-mt-2w= render TagsButtonListComponent.new(tags: { nil => @export_template.tags })
+          .fr-mt-2w= tags
 
           = render Dsfr::NoticeComponent.new(closable: false) do |c|
             - c.with_title do
