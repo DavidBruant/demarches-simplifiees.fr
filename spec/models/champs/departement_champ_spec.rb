@@ -1,7 +1,8 @@
 describe Champs::DepartementChamp, type: :model do
   describe 'validations' do
     describe 'external link' do
-      let(:champ) { build(:champ_departements, external_id: external_id) }
+      let(:champ) { described_class.new(external_id: external_id, dossier: build(:dossier)) }
+      before { allow(champ).to receive(:type_de_champ).and_return(build(:type_de_champ_departements)) }
       subject { champ.validate(:champs_public_value) }
 
       context 'when nil' do

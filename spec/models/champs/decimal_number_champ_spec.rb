@@ -1,5 +1,4 @@
 describe Champs::DecimalNumberChamp do
-
   describe 'validation' do
     let(:champ) { Champs::DecimalNumberChamp.new(value:, dossier: build(:dossier)) }
     before do
@@ -66,7 +65,7 @@ describe Champs::DecimalNumberChamp do
 
   describe 'for_export' do
     let(:champ) { Champs::DecimalNumberChamp.new(value:) }
-    before{allow(champ).to receive(:type_de_champ).and_return(build(:type_de_champ_decimal_number))}
+    before { allow(champ).to receive(:type_de_champ).and_return(build(:type_de_champ_decimal_number)) }
     subject { champ.for_export }
     context 'with nil' do
       let(:value) { 0 }

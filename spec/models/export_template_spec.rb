@@ -136,22 +136,17 @@ describe ExportTemplate do
     end
 
     context 'for pj' do
-      let(:types_de_champ_public) { [{type: :piece_justificative}]}
-      let(:dossier) { create(:dossier, :with_populated_champs, procedure:)}
+      let(:dossier) { create(:dossier, :with_populated_champs, procedure:) }
       let(:champ_pj) { dossier.champs.find(&:piece_justificative?) }
-
       let(:attachment) { ActiveStorage::Attachment.new(name: 'pj', record: champ_pj, blob: ActiveStorage::Blob.new(filename: "superpj.png")) }
 
-      before do
-        dossier.champs_public << champ_pj
-      end
       it 'returns pj and custom name for pj' do
         expect(export_template.attachment_and_path(dossier, attachment, champ: champ_pj)).to eq([attachment, "DOSSIER_#{dossier.id}/superpj_justif-1.png"])
       end
     end
     context 'pj repetable' do
       let(:procedure) { create(:procedure, :for_individual, types_de_champ_public:) }
-      let(:dossier) { create(:dossier, :with_populated_champs, procedure:)}
+      let(:dossier) { create(:dossier, :with_populated_champs, procedure:) }
       let(:draft) { procedure.draft_revision }
       let(:types_de_champ_public) do
         [
@@ -193,7 +188,7 @@ describe ExportTemplate do
   end
 
   describe '#tiptap_convert_pj' do
-    let(:procedure) { create(:procedure, types_de_champ_public: [{type: :piece_justificative, stable_id: 3, libelle: 'Justificatif de domicile'}])}
+    let(:procedure) { create(:procedure, types_de_champ_public: [{ type: :piece_justificative, stable_id: 3, libelle: 'Justificatif de domicile' }]) }
     let(:dossier) { create(:dossier, :with_populated_champs, procedure:) }
     let(:champ_pj) { dossier.champs.first }
     let(:attachment) { ActiveStorage::Attachment.new(name: 'pj', record: champ_pj, blob: ActiveStorage::Blob.new(filename: "superpj.png")) }

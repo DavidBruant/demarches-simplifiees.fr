@@ -1,9 +1,9 @@
 describe Champs::IbanChamp do
   describe '#valid?' do
     let(:champ) { Champs::IbanChamp.new(dossier: build(:dossier)) }
-    before { allow(champ).to receive(:type_de_champ).and_return(build(:type_de_champ_iban))}
+    before { allow(champ).to receive(:type_de_champ).and_return(build(:type_de_champ_iban)) }
     def with_value(value)
-      champ.tap{ _1.value = value}
+      champ.tap { _1.value = value }
     end
     it do
       expect(with_value(nil).valid?(:champs_public_value)).to be_truthy
