@@ -242,7 +242,7 @@ class Dossier < ApplicationRecord
   scope :hidden_by_administration_since, -> (since) { where('dossiers.hidden_by_administration_at IS NOT NULL AND dossiers.hidden_by_administration_at >= ?', since) }
   scope :hidden_since,                   -> (since) { hidden_by_user_since(since).or(hidden_by_administration_since(since)) }
 
-  scope :with_type_de_champ, -> (stable_id) { where(champs: { stable_id: }) }
+  scope :with_type_de_champ, -> (stable_id) { joins(:champs).where(champs: { stream: 'main', stable_id: }) }
 
   scope :all_state,                   -> { not_archived.state_not_brouillon }
   scope :en_construction,             -> { not_archived.state_en_construction }
