@@ -1,9 +1,12 @@
 describe Champs::CommuneChamp do
+  let(:procedure) { create(:procedure, types_de_champ_public: [{ type: :communes, stable_id: 99 }]) }
+  let(:dossier) { create(:dossier, procedure:) }
+
   let(:code_insee) { '63102' }
   let(:code_postal) { '63290' }
   let(:code_departement) { '63' }
   let(:champ) do
-    described_class.new(type_de_champ: build(:type_de_champ_communes)).tap do |champ|
+    described_class.new(stable_id: 99, dossier:).tap do |champ|
       champ.code_postal = code_postal
       champ.external_id = code_insee
       champ.run_callbacks(:save)
@@ -24,7 +27,12 @@ describe Champs::CommuneChamp do
     end
 
     context 'with code' do
-      let(:champ) { create(:champ_communes, code: '63102-63290') }
+      let(:champ) do
+        described_class.new(stable_id: 99, dossier:).tap do |champ|
+          champ.code = '63102-63290'
+          champ.run_callbacks(:save)
+        end
+      end
 
       it 'find commune' do
         expect(champ.to_s).to eq('Châteldon (63290)')

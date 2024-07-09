@@ -1,9 +1,12 @@
 describe Champs::RegionChamp, type: :model do
+  let(:procedure) { create(:procedure, types_de_champ_public: [{ type: :regions, stable_id: 99 }]) }
+  let(:dossier) { create(:dossier, procedure:) }
+
   describe 'validations' do
     describe 'external link' do
       let(:champ) do
         described_class
-          .new(type_de_champ: build(:type_de_champ_regions), dossier: build(:dossier))
+          .new(stable_id: 99, dossier:)
           .tap do |champ|
             champ.value = nil
             champ.external_id = external_id
@@ -38,7 +41,7 @@ describe Champs::RegionChamp, type: :model do
     describe 'value' do
       let(:champ) do
         described_class
-          .new(type_de_champ: build(:type_de_champ_regions), dossier: build(:dossier))
+          .new(stable_id: 99, dossier:)
           .tap do |champ|
             champ.value = value
           end
@@ -74,7 +77,7 @@ describe Champs::RegionChamp, type: :model do
 
   describe 'value' do
     let(:champ) do
-      described_class.new(type_de_champ: build(:type_de_champ_regions))
+      described_class.new(stable_id: 99, dossier:)
     end
 
     it 'with code' do
