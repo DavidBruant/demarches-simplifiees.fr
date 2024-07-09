@@ -161,7 +161,7 @@ RSpec.describe DossierCloneConcern do
             expect(champ_siret.etablissement).not_to be_nil
             expect(cloned_champ_siret.etablissement.id).not_to eq(champ_siret.etablissement.id)
           end
-       end
+        end
 
         context 'for Champs::PieceJustificative, original_champ.piece_justificative_file is duped' do
           let(:types_de_champ_public) { [{ type: :piece_justificative }] }
