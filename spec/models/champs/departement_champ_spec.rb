@@ -31,8 +31,8 @@ describe Champs::DepartementChamp, type: :model do
     end
 
     describe 'value' do
-      let(:procedure) { create(:procedure, types_de_champ_public: [{type: :departements}])}
-      let(:dossier) { create(:dossier, procedure:)}
+      let(:procedure) { create(:procedure, types_de_champ_public: [{ type: :departements }]) }
+      let(:dossier) { create(:dossier, procedure:) }
       let(:champ) { dossier.champs.first }
       subject { champ.validate(:champs_public_value) }
       before { champ.update_columns(value: value) }

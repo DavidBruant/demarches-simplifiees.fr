@@ -1584,7 +1584,7 @@ describe Procedure do
   end
 
   describe '#average_dossier_weight' do
-    let(:procedure) { create(:procedure, :published, types_de_champ_public: [{type: :piece_justificative}]) }
+    let(:procedure) { create(:procedure, :published, types_de_champ_public: [{ type: :piece_justificative }]) }
 
     before do
       create(:dossier, :accepte, :with_populated_champs, procedure:)
