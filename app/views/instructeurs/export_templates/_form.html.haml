@@ -24,8 +24,6 @@
       - else
         = f.hidden_field :groupe_instructeur_id
 
-      = f.hidden_field :kind
-
       - def readable_template(template) = template['content'][0]['content'].map { _1['type'] == 'text' ? tag.span(_1['text']) : tag.span(_1['attrs']['label'], class: 'fr-tag fr-tag--sm')}.join.then { sanitize(_1) }
       - tags = render TagsButtonListComponent.new(tags: { nil => @export_template.tags })
 

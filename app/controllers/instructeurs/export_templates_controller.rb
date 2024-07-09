@@ -55,12 +55,15 @@ module Instructeurs
 
     def export_template_params
       h = params.require(:export_template)
-        .permit(:name, :kind, dossier_folder: [:template], export_pdf: [:enabled, :template], pjs: [:stable_id, :enabled, :template]).to_h
+        .permit(:name, dossier_folder: [:template], export_pdf: [:enabled, :template], pjs: [:stable_id, :enabled, :template]).to_h
 
       [h[:dossier_folder], h[:export_pdf], *h[:pjs]].each { cast_in_json(_1) }
 
       # dossier_folder is always enabled
       h[:dossier_folder][:enabled] = true
+
+      # export kind is always zip
+      h[:kind] = 'zip'
 
       pj_stable_ids = @exportable_pjs.map { _1.stable_id.to_s }
       h[:pjs] = Array.wrap(h[:pjs]).filter { _1[:stable_id].in?(pj_stable_ids) }
