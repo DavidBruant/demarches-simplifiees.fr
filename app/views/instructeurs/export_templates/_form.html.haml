@@ -25,7 +25,7 @@
           = f.label '[dossier_folder][template]', class: "fr-label" do
             = "#{ExportTemplate.human_attribute_name('dossier_folder')} #{asterisk}"
             %span.fr-hint-text Nom du répertoire contenant les différents fichiers à exporter
-          .tiptap-editor{ data: { tiptap_target: 'editor' } }
+          .tiptap-editor.fr-mt-1w{ data: { tiptap_target: 'editor' } }
             = f.hidden_field "[dossier_folder][template]", data: { tiptap_target: 'input' }, value: @export_template.dossier_folder.template_json
           .fr-mt-2w
             %span.fr-text--sm Cliquez sur les étiquettes que vous souhaitez intégrer au nom du fichier
