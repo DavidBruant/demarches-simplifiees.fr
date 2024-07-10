@@ -11,7 +11,7 @@
     .fr-col-12.fr-col-md-8.fr-pr-4w
       = form_with url: form_url, model: @export_template, data: { turbo: 'true', controller: 'autosubmit' } do |f|
         %input.hidden{ type: 'submit', formaction: preview_instructeur_export_templates_path, data: { autosubmit_target: 'submitter' }, formnovalidate: 'true', formmethod: 'get' }
-        - tags = render TagsButtonListComponent.new(tags: @export_template.tags)
+        - tags = render TagsButtonListComponent.new(tags: { nil => @export_template.tags })
 
         = render Dsfr::InputComponent.new(form: f, attribute: :name, input_type: :text_field)
 

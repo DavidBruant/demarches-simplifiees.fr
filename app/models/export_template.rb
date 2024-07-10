@@ -48,8 +48,7 @@ class ExportTemplate < ApplicationRecord
   end
 
   def tags
-    t = tags_categorized.slice(:individual, :etablissement, :dossier).values.flatten
-    { nil => t }
+    tags_categorized.slice(:individual, :etablissement, :dossier).values.flatten
   end
 
   def pj_tags
