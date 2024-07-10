@@ -5,17 +5,16 @@ export class TiptapToTemplateController extends Controller {
 
   declare readonly outputTarget: HTMLElement;
   declare readonly triggerTarget: HTMLButtonElement;
-  declare template: HTMLElement | null;
 
   connect() {
     this.triggerTarget.addEventListener('click', this.handleClick.bind(this));
-
-    this.template = this.element.querySelector('.tiptap.ProseMirror p');
   }
 
   handleClick() {
-    if (this.template) {
-      this.outputTarget.innerHTML = this.template.innerHTML;
+    const template = this.element.querySelector('.tiptap.ProseMirror p');
+
+    if (template) {
+      this.outputTarget.innerHTML = template.innerHTML;
     }
   }
 }
