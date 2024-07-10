@@ -1,42 +1,6 @@
 describe ExportTemplateValidator do
   let(:validator) { ExportTemplateValidator.new }
 
-  describe '.leaves' do
-    subject { validator.send(:leaves, template) }
-
-    context 'with a string' do
-      let(:template) { 'invalid' }
-
-      it { is_expected.to eq([]) }
-    end
-
-    context 'with a well formed tiptap content' do
-      let(:template) do
-        {
-          "content" => [{ 'content' => [:leaf_1, :leaf_2] }, { 'content' => [:leaf_3] }]
-        }
-      end
-
-      it { is_expected.to eq([:leaf_1, :leaf_2, :leaf_3]) }
-    end
-  end
-
-  describe '.texts' do
-    subject { validator.send(:texts, leaves) }
-
-    context 'with some text' do
-      let(:leaves) { [{ 'type' => 'text', 'text' => 'hello' }, { 'type' => 'mention' }] }
-
-      it { is_expected.to eq(['hello']) }
-    end
-
-    context 'with a empty text' do
-      let(:leaves) { [{ 'type' => 'text', 'text' => '' }] }
-
-      it { is_expected.to eq([]) }
-    end
-  end
-
   describe 'validate' do
     let(:exportables_pieces_jointes) { [double('pj', stable_id: 3, libelle: 'libelle')] }
     let(:pj_libelle_by_stable_id) { exportables_pieces_jointes.map { |pj| [pj.stable_id.to_s, pj.libelle] }.to_h }
@@ -84,7 +48,9 @@ describe ExportTemplateValidator do
     context 'with a dossier_folder without dossier_number' do
       let(:export_template) do
         default_export_template.tap do |export_template|
-          export_template.dossier_folder['template']['content'] = [{ 'content' => [{ 'type' => 'mention', 'attrs' => { 'id' => 'other' } }] }]
+          item = empty_template
+          item['template']['content'] = [{ 'content' => [{ 'type' => 'mention', 'attrs' => { 'id' => 'other' } }] }]
+          export_template.dossier_folder = item
         end
       end
 
@@ -92,15 +58,13 @@ describe ExportTemplateValidator do
     end
 
     context 'with a empty pj' do
-      let(:export_template) { default_export_template.tap { _1.pjs.first.merge!(empty_template) } }
+      let(:export_template) { default_export_template.tap { _1.pjs = [empty_template.merge('stable_id' => '3')] } }
 
       it { expect(errors(export_template)).to eq([[:libelle, "doit être rempli"]]) }
     end
 
     context 'with a empty pj disabled' do
-      let(:export_template) do
-        default_export_template.tap { _1.pjs.first.merge!(empty_template(enabled: false)) }
-      end
+      let(:export_template) { default_export_template.tap { _1.pjs = [empty_template(enabled: false)] } }
 
       it { expect(export_template.errors.count).to eq(0) }
     end

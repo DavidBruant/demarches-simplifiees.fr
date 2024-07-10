@@ -451,7 +451,7 @@ describe ProcedureExportService do
         let(:dossier_exports) { PiecesJustificativesService.new(user_profile: instructeur, export_template:).generate_dossiers_export(Dossier.where(id: dossier)) }
         let(:export_template) do
           create(:export_template, groupe_instructeur: procedure.defaut_groupe_instructeur)
-            .tap { _1.pjs.first['enabled'] = true }
+            .tap { _1.pjs = _1.pjs.map { |pj| ExportItem.new(pj.to_h.merge('enabled' => true)) } }
         end
         before do
           allow_any_instance_of(ActiveStorage::Attachment).to receive(:url).and_return("https://opengraph.githubassets.com/d0e7862b24d8026a3c03516d865b28151eb3859029c6c6c2e86605891fbdcd7a/socketry/async-io")
