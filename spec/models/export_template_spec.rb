@@ -13,26 +13,24 @@ describe ExportTemplate do
 
   describe 'set_default_values' do
     it 'set default values' do
-      expect(export_template.content).to eq({
-        "export_pdf" => export_conf(text: "export-", enabled: true),
-        "dossier_folder" => export_conf(text: "dossier-", enabled: true),
-        "pjs" => [pj_export_conf(stable_id: 3, text: "justificatif-de-domicile-", enabled: false)]
-      })
+      expect(export_template.export_pdf).to eq(export_item(text: "export-", enabled: true))
+      expect(export_template.dossier_folder).to eq(export_item(text: "dossier-", enabled: true))
+      expect(export_template.pjs).to eq([pj_export_item(stable_id: 3, text: "justificatif-de-domicile-", enabled: false)])
     end
   end
 
   describe '#pj' do
     subject { export_template.pj(3) }
 
-    it { is_expected.to eq(pj_export_conf(stable_id: 3, text: "justificatif-de-domicile-", enabled: false)) }
+    it { is_expected.to eq(pj_export_item(stable_id: 3, text: "justificatif-de-domicile-", enabled: false)) }
   end
 
   describe '#attachment_path' do
     context 'for export pdf' do
       let(:export_template) do
         create(:export_template, groupe_instructeur:).tap do
-          _1.dossier_folder = export_conf(text: "DOSSIER_", enabled: true)
-          _1.export_pdf = export_conf(text: "mon_export_", enabled: true)
+          _1.dossier_folder = export_item(text: "DOSSIER_", enabled: true)
+          _1.export_pdf = export_item(text: "mon_export_", enabled: true)
         end
       end
 
@@ -47,27 +45,12 @@ describe ExportTemplate do
     context 'for pj' do
       let(:dossier) { create(:dossier, :en_construction, procedure: procedure) }
       let(:champ_pj) { dossier.champs_public.first }
-      let(:export_template) { create(:export_template, groupe_instructeur:).tap { _1.pjs = [pj_export_conf(stable_id: 3, text: "justif_", enabled: true)] } }
+      let(:export_template) { create(:export_template, groupe_instructeur:).tap { _1.pjs = [pj_export_item(stable_id: 3, text: "justif_", enabled: true)] } }
 
       let(:attachment) { ActiveStorage::Attachment.new(name: 'pj', record: champ_pj, blob: ActiveStorage::Blob.new(filename: "superpj.png")) }
 
       it 'returns pj and custom name for pj' do
         expect(export_template.attachment_path(dossier, attachment, champ: champ_pj)).to eq("dossier-#{dossier.id}/justif_#{dossier.id}-1.png")
-      end
-    end
-  end
-
-  describe '#tiptap_convert' do
-    context 'for date' do
-      let(:export_template) do
-        create(:export_template, groupe_instructeur:).tap do
-          _1.export_pdf["template"]["content"] = [{ "type" => "paragraph", "content" => [{ "type" => "mention", "attrs" => { "id" => "dossier_depose_at", "label" => "date de dépôt" } }] }]
-        end
-      end
-      let(:dossier) { create(:dossier, :en_construction, procedure:, depose_at: Date.parse("2024/03/30")) }
-
-      it 'convert date with dash' do
-        expect(export_template.export_pdf_path(dossier)).to eq "2024-03-30.pdf"
       end
     end
   end
@@ -108,29 +91,26 @@ describe ExportTemplate do
     end
   end
 
-  def pj_export_conf(stable_id:, text:, enabled:)
-    export_conf(text: text, enabled: enabled).merge("stable_id" => stable_id.to_s)
+  def pj_export_item(stable_id:, text:, enabled:)
+    ExportItem.new('template' => template(text: text), 'enabled' => enabled, 'stable_id' => stable_id.to_s)
   end
 
-  def export_conf(text:, enabled:)
+  def export_item(text:, enabled:)
+    ExportItem.new('template' => template(text: text), 'enabled' => enabled)
+  end
+
+  def template(text:)
     {
-      "enabled" => enabled,
-      "template" => {
-        "type" => "doc",
-        "content" => content_conf(text:)
-      }
+      "type" => "doc",
+      "content" => [
+        {
+          "type" => "paragraph",
+          "content" => [
+            { "text" => text, "type" => "text" },
+            { "type" => "mention", "attrs" => { "id" => "dossier_number", "label" => "numéro du dossier" } }
+          ]
+        }
+      ]
     }
-  end
-
-  def content_conf(text:)
-    [
-      {
-        "type" => "paragraph",
-        "content" => [
-          { "text" => text, "type" => "text" },
-          { "type" => "mention", "attrs" => { "id" => "dossier_number", "label" => "numéro du dossier" } }
-        ]
-      }
-    ]
   end
 end

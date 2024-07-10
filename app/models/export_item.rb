@@ -11,11 +11,14 @@ class ExportItem
   end
 
   def to_h
-    {
+    h = {
       'template' => @template,
-      'enabled' => @enabled,
-      'stable_id' => @stable_id
+      'enabled' => @enabled
     }
+
+    h['stable_id'] = @stable_id if @stable_id.present?
+
+    h
   end
 
   def template_json = template.to_json
@@ -44,6 +47,11 @@ class ExportItem
       .filter { |leaf| leaf['type'] == 'text' }
       .map { |text| text['text'] }
       .filter(&:present?)
+  end
+
+  def ==(other)
+    self.class == other.class &&
+      to_h == other.to_h
   end
 
   private

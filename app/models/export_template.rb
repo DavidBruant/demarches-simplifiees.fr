@@ -32,7 +32,7 @@ class ExportTemplate < ApplicationRecord
 
   def set_default_values
     self.dossier_folder = ExportItem.new({ "template" => template_with_dossier_id_suffix("dossier"), "enabled" => true })
-    self.export_pdf = ExportItem.new({ "template" => template_with_dossier_id_suffix("dossier"), "enabled" => true })
+    self.export_pdf = ExportItem.new({ "template" => template_with_dossier_id_suffix("export"), "enabled" => true })
 
     self.pjs = procedure.exportables_pieces_jointes.map do |pj|
       nice_libelle = transliterate(pj.libelle).downcase
@@ -77,7 +77,7 @@ class ExportTemplate < ApplicationRecord
 
     dir_path = case attachment.record_type
     when 'Champ'
-      [pj_path(dossier, champ.stable_id, attachment) + suffix(attachment, index, row_index)] if pj(champ.stable_id)&.fetch('enabled', false)
+      [pj_path(dossier, champ.stable_id, attachment) + suffix(attachment, index, row_index)] if pj(champ.stable_id).enabled?
     else
       nil
     end
